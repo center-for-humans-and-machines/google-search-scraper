@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  experiment-app:
+    build: ./experiment-app
+    ports:
+      - "8080:8000"
+    depends_on:
+      - search-app
+    networks:
+      - scraper-network
+
+  search-app:
+    build: ./search-app
+    # Exposed internally to the network, no need to expose to the host unless for debugging
+    ports:
+      - "8001:8000"
+    networks:
+      - scraper-network
+    # Playwright often requires extra capabilities or shm-size for Chromium
+    shm_size: '2gb'
+    security_opt:
+      - seccomp:unconfined
+
+networks:
+  scraper-network:
+    driver: bridge

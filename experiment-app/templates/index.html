@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Search Scraper Experiment</title>
+    <style>
+        body { font-family: sans-serif; margin: 2rem; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .search-container { margin-bottom: 2rem; padding: 1rem; background: #f0f0f0; border-radius: 8px; }
+        input[type="text"] { width: 70%; padding: 0.5rem; }
+        button { padding: 0.5rem 1rem; }
+        .error { color: red; }
+        .results-container { border: 1px solid #ccc; padding: 1rem; background: #fff; overflow-x: auto; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Search Experiment App</h1>
+    
+    <div class="search-container">
+        <form id="search-form">
+            <input type="text" id="query-input" name="query" placeholder="Enter search query..." required>
+            <button type="submit" id="search-btn">Search</button>
+        </form>
+    </div>
+
+    <div id="error-container" class="error" style="display: none;"></div>
+
+    <div id="results-section" style="display: none;">
+        <h2>Search Results</h2>
+        <div class="results-container" id="results-container">
+            <!-- Results will be injected here via JS -->
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const query = document.getElementById('query-input').value;
+            const btn = document.getElementById('search-btn');
+            const errorContainer = document.getElementById('error-container');
+            const resultsSection = document.getElementById('results-section');
+            const resultsContainer = document.getElementById('results-container');
+            
+            btn.disabled = true;
+            btn.textContent = "Searching...";
+            errorContainer.style.display = 'none';
+            resultsSection.style.display = 'none';
+            resultsContainer.innerHTML = '';
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('query', query);
+
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    errorContainer.textContent = "Error: " + data.error;
+                    errorContainer.style.display = 'block';
+                } else {
+                    console.log("Parsed Google Search Results:", data.results);
+                    
+                    resultsSection.style.display = 'block';
+                    if (data.results && data.results.length > 0) {
+                        const ul = document.createElement('ul');
+                        data.results.forEach(item => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                <a href="${item.link}" target="_blank" rel="noopener noreferrer">
+                                    <h3>${item.title}</h3>
+                                </a>
+                                <p>${item.link}</p>
+                            `;
+                            ul.appendChild(li);
+                        });
+                        resultsContainer.appendChild(ul);
+                    } else {
+                        resultsContainer.innerHTML = "<p>No results found or unable to parse Google's response (e.g. CAPTCHA).</p>";
+                    }
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+                errorContainer.textContent = "Fetch Error: " + error.message;
+                errorContainer.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Search";
+            }
+        });
+    </script>
+</body>
+</html>
